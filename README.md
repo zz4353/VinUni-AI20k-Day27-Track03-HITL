@@ -69,7 +69,9 @@ Every node also writes one row to `audit_events`. The graph state is persisted b
 | 58–72%      | `human_approval` | Yes — approve / reject / edit      | PR-Demo #1 |
 | < 58%       | `escalate`       | Yes — answer specific questions    | PR-Demo #2 |
 
-Thresholds live in `common/schemas.py` (`AUTO_APPROVE_THRESHOLD = 0.73`, `ESCALATE_THRESHOLD = 0.58`).
+Thresholds live in `common/schemas.py` (`AUTO_APPROVE_THRESHOLD = 0.90`, `ESCALATE_THRESHOLD = 0.78`).
+
+> **Note:** Thresholds were tuned from the original (0.73 / 0.58) because `gpt-4o-mini` reports higher confidence than expected on the demo PRs. With the adjusted values: PR-Demo #1 (~85%) → `human_approval`, PR-Demo #2 (~70%) → `escalate`.
 
 ## Layout
 
@@ -132,8 +134,14 @@ The agent calls the GitHub REST API directly to **read PR diffs** and **post rev
 
 ```bash
 git clone <lab-repo-url> && cd Day27-Track3-HITL
-uv sync                                     # install Python deps
+uv sync                                     # install Python deps (preferred)
 cp .env.example .env && $EDITOR .env        # set OPENROUTER_API_KEY and GITHUB_TOKEN
+```
+
+If `uv` is not available, use pip instead:
+```bash
+pip install -e .
+cp .env.example .env
 ```
 
 The SQLite file `hitl_audit.db` is created on demand when exercise 4 runs.
@@ -300,7 +308,7 @@ Side-effects placed *before* `interrupt()` in the same node — the node re-runs
 Token lacks `public_repo` scope, or repo is private and you only have `public_repo`. Re-create the PAT with the right scope.
 
 **LLM stays overconfident on PR #2 and never escalates.**
-Temporarily raise `ESCALATE_THRESHOLD` in `common/schemas.py` to 0.70 to force the branch.
+Raise both thresholds in `common/schemas.py`: set `AUTO_APPROVE_THRESHOLD = 0.90` and `ESCALATE_THRESHOLD = 0.78`. This ensures PR-Demo #1 (~85%) hits `human_approval` and PR-Demo #2 (~70%) hits `escalate`.
 
 **`audit_events` schema is stale after a code change.**
 The schema is created idempotently on first connection. To reset state completely, just delete the file:
